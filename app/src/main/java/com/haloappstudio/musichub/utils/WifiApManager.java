@@ -1,4 +1,4 @@
-package com.haloappstudio.musichub.Utils;
+package com.haloappstudio.musichub.utils;
 
 import android.content.Context;
 import android.net.wifi.WifiConfiguration;

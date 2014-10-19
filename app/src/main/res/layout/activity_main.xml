@@ -11,14 +11,14 @@
 
 
     <Button
-        android:layout_width="349dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Create Hub"
-        android:id="@+id/button" />
+        android:id="@+id/createHubButton" />
 
     <Button
-        android:layout_width="352dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Join Hub"
-        android:id="@+id/button2" />
+        android:id="@+id/joinHubButton" />
 </LinearLayout>
