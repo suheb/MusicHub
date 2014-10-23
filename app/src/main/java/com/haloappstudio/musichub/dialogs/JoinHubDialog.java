@@ -5,6 +5,7 @@ import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
@@ -17,6 +18,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
+import com.haloappstudio.musichub.ClientActivity;
 import com.haloappstudio.musichub.R;
 import com.haloappstudio.musichub.utils.Utils;
 
@@ -45,7 +47,7 @@ public class JoinHubDialog extends DialogFragment {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(mActivity);
         builder.setTitle("Select Hub");
-        if(scanResultList.size() != 0){
+        if(scanResultList!= null){
             builder.setAdapter(wifiListAdapter, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
@@ -71,6 +73,7 @@ public class JoinHubDialog extends DialogFragment {
                                 @Override
                                 public void run() {
                                     mProgressDialog.dismiss();
+                                    mActivity.startActivity(new Intent(mActivity, ClientActivity.class));
                                 }
                             });
                         }

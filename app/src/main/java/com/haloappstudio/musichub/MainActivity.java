@@ -2,6 +2,7 @@ package com.haloappstudio.musichub;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -57,6 +58,7 @@ public class MainActivity extends ActionBarActivity {
                             @Override
                             public void run() {
                                 mProgressDialog.dismiss();
+                                startActivity(new Intent(getApplicationContext(),ServerActivity.class));
                             }
                         });
                     }
