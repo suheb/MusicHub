@@ -82,8 +82,9 @@ public class ClientActivity extends ActionBarActivity {
                         }
                         if(s.contains("seek")){
                             String[] strings = s.split("-");
-                            Log.d("TAG", "lag" + (Integer.parseInt(strings[1]) - mMediaPlayer.getCurrentPosition()));
-                            mMediaPlayer.seekTo(Integer.parseInt(strings[1]));
+                            Log.d("TAG", "lag:" + (Integer.parseInt(strings[1]) - mMediaPlayer.getCurrentPosition())
+                                    + "latency:" + System.currentTimeMillis());
+                            mMediaPlayer.seekTo(Integer.parseInt(strings[1])+200);
                         }
                     }
                 });
@@ -92,7 +93,7 @@ public class ClientActivity extends ActionBarActivity {
                     public void onDataAvailable(DataEmitter emitter, final ByteBufferList bb) {
                         byte[] bytes = bb.getAllByteArray();
                         Log.d("TAG", "Got "+ bytes.length +" bytes");
-                        webSocket.ping("pong");
+                        //webSocket.ping("pong");
                         try {
                             FileOutputStream fileOutputStream = new FileOutputStream(file, true);
                             BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
@@ -139,6 +140,7 @@ public class ClientActivity extends ActionBarActivity {
         if(mWebSocket!=null) {
             mWebSocket.close();
         }
+        mMediaPlayer.release();
     }
 
     private void setTimer() {

@@ -40,7 +40,7 @@ public class JoinHubDialog extends DialogFragment {
         mWifiManager = (WifiManager) mActivity.getSystemService(Context.WIFI_SERVICE);
 
         final List<ScanResult> scanResultList = mWifiManager.getScanResults();
-        WifiListAdapter wifiListAdapter = new WifiListAdapter(mActivity, R.layout.joinhub_dialog, scanResultList);
+        WifiListAdapter wifiListAdapter = new WifiListAdapter(mActivity, R.layout.dialog_joinhub, scanResultList);
 
         mWifiConf = new WifiConfiguration();
         mProgressDialog = new ProgressDialog(mActivity);

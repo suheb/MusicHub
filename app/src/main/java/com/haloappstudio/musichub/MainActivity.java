@@ -58,7 +58,7 @@ public class MainActivity extends ActionBarActivity {
                             @Override
                             public void run() {
                                 mProgressDialog.dismiss();
-                                startActivity(new Intent(getApplicationContext(),ServerActivity.class));
+                                startActivity(new Intent(getApplicationContext(),SongsListActivity.class));
                             }
                         });
                     }
