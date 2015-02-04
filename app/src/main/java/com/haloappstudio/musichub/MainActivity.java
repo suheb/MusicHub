@@ -34,7 +34,7 @@ public class MainActivity extends ActionBarActivity {
 
         mProgressDialog = new ProgressDialog(this);
 
-        Button createHubButton = (Button) findViewById(R.id.createHubButton);
+        Button createHubButton = (Button) findViewById(R.id.create_hub_button);
         createHubButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -66,7 +66,7 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
-        Button joinHubButton = (Button) findViewById(R.id.joinHubButton);
+        Button joinHubButton = (Button) findViewById(R.id.join_hub_button);
         final DialogFragment dialog = new JoinHubDialog();
         joinHubButton.setOnClickListener(new View.OnClickListener() {
             @Override

@@ -46,11 +46,7 @@ public class ClientActivity extends ActionBarActivity {
         mMediaPlayer = new MediaPlayer();
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mMediaPlayer.setScreenOnWhilePlaying(true);
-        try {
-            mMediaPlayer.setDataSource(this, Uri.fromFile(file));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
         mWebSocketConnectCallback = new AsyncHttpClient.WebSocketConnectCallback() {
             @Override
             public void onCompleted(Exception ex, final WebSocket webSocket) {
@@ -73,6 +69,7 @@ public class ClientActivity extends ActionBarActivity {
                         if(s.contains("play")){
                             String[] strings = s.split("-");
                             try {
+                                mMediaPlayer.setDataSource(ClientActivity.this, Uri.fromFile(file));
                                 mMediaPlayer.prepare();
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -93,7 +90,7 @@ public class ClientActivity extends ActionBarActivity {
                     public void onDataAvailable(DataEmitter emitter, final ByteBufferList bb) {
                         byte[] bytes = bb.getAllByteArray();
                         Log.d("TAG", "Got "+ bytes.length +" bytes");
-                        //webSocket.ping("pong");
+                        webSocket.ping("pong");
                         try {
                             FileOutputStream fileOutputStream = new FileOutputStream(file, true);
                             BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);

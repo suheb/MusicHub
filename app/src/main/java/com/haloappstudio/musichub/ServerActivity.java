@@ -4,7 +4,6 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -14,7 +13,6 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import com.haloappstudio.musichub.utils.Utils;
-import com.koushikdutta.async.AsyncServerSocket;
 import com.koushikdutta.async.callback.CompletedCallback;
 import com.koushikdutta.async.http.WebSocket;
 import com.koushikdutta.async.http.libcore.RequestHeaders;
@@ -34,61 +32,106 @@ public class ServerActivity extends ActionBarActivity {
     private AsyncHttpServer mAsyncHttpServer;
     private AsyncHttpServer.WebSocketRequestCallback mWebSocketCallback;
     private MediaPlayer mMediaPlayer;
+    private String[] mPlaylist;
+    private int mCurrentSongIndex;
+    private File mCurrentSong;
+
+    final static int CHUNK_SIZE = 10000;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_server);
 
+        if (savedInstanceState == null) {
+            Bundle extras = getIntent().getExtras();
+            mPlaylist = extras.getStringArray("playlist");
+        } else {
+            mPlaylist = savedInstanceState.getStringArray("playlist");
+        }
+
         mSockets = new ArrayList<WebSocket>();
         mAsyncHttpServer = new AsyncHttpServer();
         mMediaPlayer = new MediaPlayer();
-
-        File file = new File(Environment.getExternalStorageDirectory(),"/Music/preview.mp3");
-        final int fileSize = (int) file.length();
-        final int chunk = 10000;
-        final int lastOffset = fileSize - (fileSize % chunk);
-        final byte[] bytes = new byte[fileSize];
-
+        mCurrentSongIndex = 0;
+        mCurrentSong = new File(mPlaylist[mCurrentSongIndex]);
+        // set file for playback
         try {
-            // set file for playback
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-            mMediaPlayer.setDataSource(this, Uri.fromFile(file));
+            mMediaPlayer.setDataSource(this, Uri.fromFile(mCurrentSong));
             mMediaPlayer.prepareAsync();
-            // read file into bytes for sending
-            BufferedInputStream buf = new BufferedInputStream(new FileInputStream(file));
-            buf.read(bytes);
-            buf.close();
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        // set MediaPlayer listeners
         mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mediaPlayer) {
                 mediaPlayer.start();
             }
         });
-
-        Button sendButton = (Button) findViewById(R.id.sendButtonS);
-        sendButton.setOnClickListener(new View.OnClickListener(){
+        mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
-            public void onClick(View view) {
-                for(WebSocket socket : mSockets) {
-                    socket.send("seek-" + mMediaPlayer.getCurrentPosition() +"-"+ System.currentTimeMillis());
+            public void onCompletion(MediaPlayer mediaPlayer) {
+                if (mCurrentSongIndex < mPlaylist.length) {
+                    mCurrentSongIndex++;
+                    mCurrentSong = new File(mPlaylist[mCurrentSongIndex]);
+                    int fileSize = (int) mCurrentSong.length();
+                    int lastOffset = fileSize - (fileSize % CHUNK_SIZE);
+                    byte[] bytes = new byte[fileSize];
+                    mMediaPlayer.reset();
+                    try {
+                        // set file for playback
+                        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+                        mMediaPlayer.setDataSource(ServerActivity.this, Uri.fromFile(mCurrentSong));
+                        mMediaPlayer.prepareAsync();
+                        // read file into bytes for sending
+                        BufferedInputStream buf = new BufferedInputStream(new FileInputStream(mCurrentSong));
+                        buf.read(bytes);
+                        buf.close();
+
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    //send file in chunks
+                    for (WebSocket webSocket : mSockets) {
+                        for (int offset = 0; offset < lastOffset; offset += CHUNK_SIZE) {
+                            webSocket.send(bytes, offset, offset + CHUNK_SIZE);
+                        }
+                        webSocket.send(bytes, lastOffset, fileSize);
+                        webSocket.send("File sent");
+                        webSocket.send("play-" + mMediaPlayer.getCurrentPosition());
+                    }
+
                 }
             }
         });
-
+        // set callback for HttpServer
         mWebSocketCallback = new AsyncHttpServer.WebSocketRequestCallback() {
             @Override
             public void onConnected(final WebSocket webSocket, RequestHeaders headers) {
                 // add to connected socket list
                 mSockets.add(webSocket);
                 //send file in chunks
-                for(int offset = 0; offset < lastOffset; offset += chunk) {
-                    webSocket.send(bytes, offset, offset+chunk);
+                int fileSize = (int) mCurrentSong.length();
+                int lastOffset = fileSize - (fileSize % CHUNK_SIZE);
+                byte[] bytes = new byte[fileSize];
+                // read file into bytes for sending
+                try {
+                    BufferedInputStream buf = new BufferedInputStream(new FileInputStream(mCurrentSong));
+                    buf.read(bytes);
+                    buf.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                for (int offset = 0; offset < lastOffset; offset += CHUNK_SIZE) {
+                    webSocket.send(bytes, offset, offset + CHUNK_SIZE);
                 }
                 webSocket.send(bytes, lastOffset, fileSize);
                 webSocket.send("File sent");
@@ -120,12 +163,27 @@ public class ServerActivity extends ActionBarActivity {
                 });
             }
         };
-
         mAsyncHttpServer.websocket("/", mWebSocketCallback);
-        AsyncServerSocket soc = mAsyncHttpServer.listen(Utils.PORT_NUMBER);
+        // listen for request from client
+        mAsyncHttpServer.listen(Utils.PORT_NUMBER);
+
+        Button sendButton = (Button) findViewById(R.id.send_server_button);
+        sendButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                for (WebSocket socket : mSockets) {
+                    socket.send("seek-" + mMediaPlayer.getCurrentPosition() + "-" + System.currentTimeMillis());
+                }
+            }
+        });
 
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putStringArray("playlist", mPlaylist);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

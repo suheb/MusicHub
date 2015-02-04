@@ -51,7 +51,7 @@ public class CustomCursorAdapter extends SimpleCursorAdapter implements SectionI
         // create a list from the set to sort
         ArrayList<String> sectionList = new ArrayList<String>(sectionLetters);
 
-        Log.d("sectionList", sectionList.toString());
+        //Log.d("sectionList", sectionList.toString());
         Collections.sort(sectionList);
 
         sections = new String[sectionList.size()];
@@ -60,12 +60,12 @@ public class CustomCursorAdapter extends SimpleCursorAdapter implements SectionI
         return null;
     }
     public int getPositionForSection(int section) {
-        Log.d("section", "" + section + " - " + mapIndex.get(sections[section]));
+        //Log.d("section", "" + section + " - " + mapIndex.get(sections[section]));
         return mapIndex.get(sections[section]);
     }
 
     public int getSectionForPosition(int position) {
-        Log.d("position", "" + position);
+        //Log.d("position", "" + position);
         return 0;
     }
 

@@ -7,22 +7,25 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v4.app.LoaderManager;
-import android.support.v4.app.NavUtils;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.SearchView;
-import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.ViewGroup;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.FilterQueryProvider;
 import android.widget.ListView;
-import android.widget.TextView;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.haloappstudio.musichub.utils.CustomCursorAdapter;
+
+import java.util.HashMap;
 
 
 public class SongsListActivity extends ActionBarActivity
@@ -34,8 +37,10 @@ public class SongsListActivity extends ActionBarActivity
     static final String[] PROJECTION = {
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.TITLE,
-            MediaStore.Audio.Media.ARTIST
+            MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.DATA
     };
+    private HashMap<String, String> mCheckedItems;
     static final String SORT_ORDER = MediaStore.Audio.Media.TITLE + " COLLATE LOCALIZED ASC";
 
 
@@ -44,28 +49,61 @@ public class SongsListActivity extends ActionBarActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_songs_list);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        TextView emptyText = new TextView(this);
-        emptyText.setText("No Tracks");
-        emptyText.setTextSize(16);
-        emptyText.setGravity(Gravity.CENTER_HORIZONTAL);
+        mCheckedItems = new HashMap<>();
+        ProgressBar progressBar = (ProgressBar) findViewById(R.id.progressBar);
         mListView = (ListView) findViewById(R.id.songs_list);
-        mListView.setEmptyView(emptyText);
+        mListView.setEmptyView(progressBar);
         mListView.setFastScrollEnabled(true);
         mListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
         mListView.setTextFilterEnabled(true);
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Cursor cursor = (Cursor) mAdapter.getItem(position);
+                if (mListView.isItemChecked(position)) {
+                    mCheckedItems.put(cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media._ID)),
+                            cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA)));
+                    Toast.makeText(SongsListActivity.this, cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.DATA)),
+                            Toast.LENGTH_SHORT).show();
+                }
+                else{
+                    mCheckedItems.remove(cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media._ID)));
+                }
+            }
+        });
 
-        // Must add the progress bar to the root of the layout
-        ViewGroup root = (ViewGroup) findViewById(android.R.id.content);
-        root.addView(emptyText);
+        Button playButton = (Button) findViewById(R.id.play_button);
+        playButton.setOnClickListener(new Button.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                /*SparseBooleanArray checkedItems = mListView.getCheckedItemPositions();
+                String[] outputStrArr = new String[checkedItems.size()];
+                for (int i = 0, j = 0; i < checkedItems.size(); i++) {
+                    int pos = checkedItems.keyAt(i);
+                    if (checkedItems.valueAt(i)) {
+                        Cursor cursor = (Cursor) mAdapter.getItem(pos);
+                        int index = cursor.getColumnIndex(MediaStore.Audio.Media.DATA);
+                        outputStrArr[j++] = cursor.getString(index);
+                        //Log.d("TAG", outputStrArr[j]);
+                    }
+                }*/
+                String[] outputStrArr = mCheckedItems.values().toArray(new String[0]);
+                Intent intent = new Intent(getApplicationContext(), ServerActivity.class);
+                Bundle bundle = new Bundle();
+                bundle.putStringArray("playlist", outputStrArr);
+                intent.putExtras(bundle);
+                startActivity(intent);
+            }
+        });
 
         // For the cursor adapter, specify which columns go into which views
         String[] fromColumns = {
                 MediaStore.Audio.Media.TITLE,
-                MediaStore.Audio.Media.ARTIST
+                //MediaStore.Audio.Media.ARTIST
         };
         int[] toViews = {
                 android.R.id.text1,
-               // R.id.artist_name
+                // R.id.artist_name
         };
 
         // Create an empty adapter we will use to display the loaded data.
@@ -101,6 +139,7 @@ public class SongsListActivity extends ActionBarActivity
             mAdapter.getFilter().filter(query);
         }
     }
+
     // Called when a new Loader needs to be created
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         // Now create and return a CursorLoader that will take care of
@@ -114,6 +153,16 @@ public class SongsListActivity extends ActionBarActivity
         // Swap the new cursor in.  (The framework will take care of closing the
         // old cursor once we return.)
         mAdapter.swapCursor(data);
+        for(int i =  0; i < mAdapter.getCount(); i++){
+            Cursor cursor = (Cursor) mAdapter.getItem(i);
+            int index = cursor.getColumnIndex(MediaStore.Audio.Media._ID);
+            if(mCheckedItems.get(cursor.getString(index)) != null){
+                if(!mListView.isItemChecked(i))
+                    mListView.setItemChecked(i, true);
+                Toast.makeText(SongsListActivity.this, "Position-" + i,
+                        Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     // Called when a previously created loader is reset, making the data unavailable
@@ -156,11 +205,9 @@ public class SongsListActivity extends ActionBarActivity
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        switch (item.getItemId()) {
-            // Respond to the action bar's Up/Home button
-            case android.R.id.home:
-                NavUtils.navigateUpFromSameTask(this);
-                return true;
+        int id = item.getItemId();
+        if (id == R.id.action_settings) {
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }
