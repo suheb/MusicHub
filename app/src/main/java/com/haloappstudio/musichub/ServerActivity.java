@@ -76,39 +76,7 @@ public class ServerActivity extends ActionBarActivity {
         mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
-                if (mCurrentSongIndex < mPlaylist.length) {
-                    mCurrentSongIndex++;
-                    mCurrentSong = new File(mPlaylist[mCurrentSongIndex]);
-                    int fileSize = (int) mCurrentSong.length();
-                    int lastOffset = fileSize - (fileSize % CHUNK_SIZE);
-                    byte[] bytes = new byte[fileSize];
-                    mMediaPlayer.reset();
-                    try {
-                        // set file for playback
-                        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-                        mMediaPlayer.setDataSource(ServerActivity.this, Uri.fromFile(mCurrentSong));
-                        mMediaPlayer.prepareAsync();
-                        // read file into bytes for sending
-                        BufferedInputStream buf = new BufferedInputStream(new FileInputStream(mCurrentSong));
-                        buf.read(bytes);
-                        buf.close();
-
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                    //send file in chunks
-                    for (WebSocket webSocket : mSockets) {
-                        for (int offset = 0; offset < lastOffset; offset += CHUNK_SIZE) {
-                            webSocket.send(bytes, offset, offset + CHUNK_SIZE);
-                        }
-                        webSocket.send("File sent");
-                        webSocket.send("play-" + mMediaPlayer.getCurrentPosition());
-                    }
-
-                }
+                playNext();
             }
         });
         // set callback for HttpServer
@@ -117,7 +85,7 @@ public class ServerActivity extends ActionBarActivity {
             public void onConnected(final WebSocket webSocket, RequestHeaders headers) {
                 // add to connected socket list
                 mSockets.add(webSocket);
-                //send file in chunks
+
                 int fileSize = (int) mCurrentSong.length();
                 int lastOffset = fileSize - (fileSize % CHUNK_SIZE);
                 byte[] bytes = new byte[fileSize];
@@ -129,7 +97,9 @@ public class ServerActivity extends ActionBarActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
+                //send file in chunks
+                webSocket.send("file-" + mCurrentSong.getName());
+                //Toast.makeText(getApplicationContext(), mCurrentSong.getName(), Toast.LENGTH_SHORT).show();
                 for (int offset = 0; offset < lastOffset; offset += CHUNK_SIZE) {
                     webSocket.send(bytes, offset, offset + CHUNK_SIZE);
                 }
@@ -167,8 +137,8 @@ public class ServerActivity extends ActionBarActivity {
         // listen for request from client
         mAsyncHttpServer.listen(Utils.PORT_NUMBER);
 
-        Button sendButton = (Button) findViewById(R.id.send_server_button);
-        sendButton.setOnClickListener(new View.OnClickListener() {
+        Button syncButton = (Button) findViewById(R.id.sync_button);
+        syncButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 for (WebSocket socket : mSockets) {
@@ -176,7 +146,20 @@ public class ServerActivity extends ActionBarActivity {
                 }
             }
         });
-
+        Button prevButton = (Button) findViewById(R.id.prev_button);
+        prevButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                playPrev();
+            }
+        });
+        Button nextButton = (Button) findViewById(R.id.next_button);
+        nextButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                playNext();
+            }
+        });
     }
 
     @Override
@@ -209,5 +192,52 @@ public class ServerActivity extends ActionBarActivity {
         super.onDestroy();
         mAsyncHttpServer.stop();
         mMediaPlayer.release();
+    }
+    public void playSong(){
+        mCurrentSong = new File(mPlaylist[mCurrentSongIndex]);
+        int fileSize = (int) mCurrentSong.length();
+        int lastOffset = fileSize - (fileSize % CHUNK_SIZE);
+        byte[] bytes = new byte[fileSize];
+        mMediaPlayer.reset();
+        try {
+            // set file for playback
+            mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            mMediaPlayer.setDataSource(ServerActivity.this, Uri.fromFile(mCurrentSong));
+            mMediaPlayer.prepareAsync();
+            // read file into bytes for sending
+            BufferedInputStream buf = new BufferedInputStream(new FileInputStream(mCurrentSong));
+            buf.read(bytes);
+            buf.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        for (WebSocket webSocket : mSockets) {
+            //send file in chunks
+            webSocket.send("file-" + mCurrentSong.getName());
+            for (int offset = 0; offset < lastOffset; offset += CHUNK_SIZE) {
+                webSocket.send(bytes, offset, offset + CHUNK_SIZE);
+            }
+            webSocket.send(bytes, lastOffset, fileSize);
+            webSocket.send("File sent");
+            webSocket.send("prepare");
+        }
+    }
+    public void playNext(){
+        mCurrentSongIndex++;
+        if(mCurrentSongIndex == mPlaylist.length){
+            mCurrentSongIndex = 0;
+        }
+        playSong();
+    }
+    public void playPrev(){
+        mCurrentSongIndex--;
+        if(mCurrentSongIndex < 0){
+            mCurrentSongIndex = mPlaylist.length - 1;
+        }
+        playSong();
     }
 }

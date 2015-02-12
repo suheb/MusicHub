@@ -31,19 +31,20 @@ public class ClientActivity extends ActionBarActivity{
     private AsyncHttpClient.WebSocketConnectCallback mWebSocketConnectCallback;
     private WebSocket mWebSocket;
     private MediaPlayer mMediaPlayer;
+    private File mCurrentSong;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client);
-
         File dir =  new File(Environment.getExternalStorageDirectory(),"/MusicHub");
         if(!dir.exists()) {
             dir.mkdirs();
         }
-        final File file = new File(dir,"temp.mp3");
+        final File file = new File(dir, "temp.mp3");
         if(file.exists()) {
             file.delete();
         }
+
         mMediaPlayer = new MediaPlayer();
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mMediaPlayer.setScreenOnWhilePlaying(true);
@@ -51,6 +52,7 @@ public class ClientActivity extends ActionBarActivity{
             @Override
             public void onPrepared(MediaPlayer mediaPlayer) {
                 mWebSocket.send("prepared");
+                mMediaPlayer.start();
                 Toast.makeText(getApplicationContext(), "Prepared", Toast.LENGTH_LONG).show();
             }
         });
@@ -66,20 +68,31 @@ public class ClientActivity extends ActionBarActivity{
                     @Override
                     public void onStringAvailable(final String s) {
                         Log.d("TAG", s);
-                        if(s.contains("prepare")){
+                        if(s.contains("file")){
+                            String[] strings = s.split("-");
+                            File dir =  new File(Environment.getExternalStorageDirectory(),"/MusicHub");
+                            if(!dir.exists()) {
+                                dir.mkdirs();
+                            }
+                            mCurrentSong = new File(dir, strings[1]);
+                            if(mCurrentSong.exists()) {
+                                mCurrentSong.delete();
+                            }
+                        }
+                        else if(s.contains("prepare")){
+                            mMediaPlayer.reset();
                             try {
-                                mMediaPlayer.setDataSource(ClientActivity.this, Uri.fromFile(file));
+                                mMediaPlayer.setDataSource(ClientActivity.this, Uri.fromFile(mCurrentSong));
                                 mMediaPlayer.prepareAsync();
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
                         }
-                        if(s.contains("start")){
+                        else if(s.contains("start")){
                             String[] strings = s.split("-");
-                            mMediaPlayer.start();
                             mMediaPlayer.seekTo(Integer.parseInt(strings[1])+200);
                         }
-                        if(s.contains("seek")){
+                        else if(s.contains("seek")){
                             String[] strings = s.split("-");
                             Log.d("TAG", "lag:" + (Integer.parseInt(strings[1]) - mMediaPlayer.getCurrentPosition())
                                     + "latency:" + System.currentTimeMillis());
@@ -94,7 +107,7 @@ public class ClientActivity extends ActionBarActivity{
                         Log.d("TAG", "Got "+ bytes.length +" bytes");
                         webSocket.ping("pong");
                         try {
-                            FileOutputStream fileOutputStream = new FileOutputStream(file, true);
+                            FileOutputStream fileOutputStream = new FileOutputStream(mCurrentSong, true);
                             BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
                             bufferedOutputStream.write(bytes);
 
