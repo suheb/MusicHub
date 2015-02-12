@@ -9,6 +9,7 @@ import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.koushikdutta.async.ByteBufferList;
 import com.koushikdutta.async.DataEmitter;
@@ -25,7 +26,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 
-public class ClientActivity extends ActionBarActivity {
+public class ClientActivity extends ActionBarActivity{
     private AsyncHttpClient  mAsyncHttpClient;
     private AsyncHttpClient.WebSocketConnectCallback mWebSocketConnectCallback;
     private WebSocket mWebSocket;
@@ -46,7 +47,13 @@ public class ClientActivity extends ActionBarActivity {
         mMediaPlayer = new MediaPlayer();
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mMediaPlayer.setScreenOnWhilePlaying(true);
-
+        mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+            @Override
+            public void onPrepared(MediaPlayer mediaPlayer) {
+                mWebSocket.send("prepared");
+                Toast.makeText(getApplicationContext(), "Prepared", Toast.LENGTH_LONG).show();
+            }
+        });
         mWebSocketConnectCallback = new AsyncHttpClient.WebSocketConnectCallback() {
             @Override
             public void onCompleted(Exception ex, final WebSocket webSocket) {
@@ -55,27 +62,22 @@ public class ClientActivity extends ActionBarActivity {
                     return;
                 }
                 mWebSocket = webSocket;
-               // webSocket.send("Hello Server");
                 webSocket.setStringCallback(new WebSocket.StringCallback() {
                     @Override
                     public void onStringAvailable(final String s) {
-                        /*ClientActivity.this.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(getApplicationContext(), s, Toast.LENGTH_SHORT).show();
-                            }
-                        });*/
                         Log.d("TAG", s);
-                        if(s.contains("play")){
-                            String[] strings = s.split("-");
+                        if(s.contains("prepare")){
                             try {
                                 mMediaPlayer.setDataSource(ClientActivity.this, Uri.fromFile(file));
-                                mMediaPlayer.prepare();
+                                mMediaPlayer.prepareAsync();
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
+                        }
+                        if(s.contains("start")){
+                            String[] strings = s.split("-");
                             mMediaPlayer.start();
-                            mMediaPlayer.seekTo(Integer.parseInt(strings[1]));
+                            mMediaPlayer.seekTo(Integer.parseInt(strings[1])+200);
                         }
                         if(s.contains("seek")){
                             String[] strings = s.split("-");

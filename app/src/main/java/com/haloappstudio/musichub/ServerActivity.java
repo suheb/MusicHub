@@ -104,7 +104,6 @@ public class ServerActivity extends ActionBarActivity {
                         for (int offset = 0; offset < lastOffset; offset += CHUNK_SIZE) {
                             webSocket.send(bytes, offset, offset + CHUNK_SIZE);
                         }
-                        webSocket.send(bytes, lastOffset, fileSize);
                         webSocket.send("File sent");
                         webSocket.send("play-" + mMediaPlayer.getCurrentPosition());
                     }
@@ -130,12 +129,13 @@ public class ServerActivity extends ActionBarActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+
                 for (int offset = 0; offset < lastOffset; offset += CHUNK_SIZE) {
                     webSocket.send(bytes, offset, offset + CHUNK_SIZE);
                 }
                 webSocket.send(bytes, lastOffset, fileSize);
                 webSocket.send("File sent");
-                webSocket.send("play-" + mMediaPlayer.getCurrentPosition());
+                webSocket.send("prepare");
                 //Use this to clean up any references to your websocket
                 webSocket.setClosedCallback(new CompletedCallback() {
                     @Override
@@ -157,8 +157,8 @@ public class ServerActivity extends ActionBarActivity {
                                 Toast.makeText(getApplicationContext(), s, Toast.LENGTH_SHORT).show();
                             }
                         });
-                        if ("Hello Server".equals(s))
-                            webSocket.send("Welcome Client!");
+                        if (s.contains("prepared"))
+                            webSocket.send("start-" + mMediaPlayer.getCurrentPosition());
                     }
                 });
             }
