@@ -4,7 +4,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.provider.MediaStore;
 import android.support.v4.widget.SimpleCursorAdapter;
-import android.util.Log;
 import android.widget.SectionIndexer;
 
 import java.util.ArrayList;
@@ -30,7 +29,7 @@ public class CustomCursorAdapter extends SimpleCursorAdapter implements SectionI
     public Cursor swapCursor(Cursor cursor){
         super.swapCursor(cursor);
         this.cursor = cursor;
-        mapIndex = new LinkedHashMap<String, Integer>();
+        mapIndex = new LinkedHashMap<>();
         if(cursor != null){
             int index = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
             for (cursor.moveToLast(); !cursor.isBeforeFirst(); cursor.moveToPrevious()) {
@@ -42,7 +41,6 @@ public class CustomCursorAdapter extends SimpleCursorAdapter implements SectionI
                 ch = ch.toUpperCase(Locale.US);
 
                 // HashMap will prevent duplicates
-                Log.d("sectionItem::",ch+"--"+cursor.getPosition());
                 mapIndex.put(ch, cursor.getPosition());
             }
         }
@@ -51,7 +49,6 @@ public class CustomCursorAdapter extends SimpleCursorAdapter implements SectionI
         // create a list from the set to sort
         ArrayList<String> sectionList = new ArrayList<String>(sectionLetters);
 
-        //Log.d("sectionList", sectionList.toString());
         Collections.sort(sectionList);
 
         sections = new String[sectionList.size()];
@@ -60,12 +57,10 @@ public class CustomCursorAdapter extends SimpleCursorAdapter implements SectionI
         return null;
     }
     public int getPositionForSection(int section) {
-        //Log.d("section", "" + section + " - " + mapIndex.get(sections[section]));
         return mapIndex.get(sections[section]);
     }
 
     public int getSectionForPosition(int position) {
-        //Log.d("position", "" + position);
         return 0;
     }
 

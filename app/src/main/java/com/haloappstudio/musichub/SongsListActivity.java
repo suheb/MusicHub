@@ -30,19 +30,18 @@ import java.util.HashMap;
 
 public class SongsListActivity extends ActionBarActivity
         implements LoaderManager.LoaderCallbacks<Cursor> {
-    private SimpleCursorAdapter mAdapter;
-    private ListView mListView;
-    private String mSelectionClause = null;
-    private String[] mSelectionArgs = null;
     static final String[] PROJECTION = {
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.DATA
     };
-    private HashMap<String, String> mCheckedItems;
     static final String SORT_ORDER = MediaStore.Audio.Media.TITLE + " COLLATE LOCALIZED ASC";
-
+    private SimpleCursorAdapter mAdapter;
+    private ListView mListView;
+    private String mSelectionClause = null;
+    private String[] mSelectionArgs = null;
+    private HashMap<String, String> mCheckedItems;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,17 +75,6 @@ public class SongsListActivity extends ActionBarActivity
         playButton.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View view) {
-                /*SparseBooleanArray checkedItems = mListView.getCheckedItemPositions();
-                String[] outputStrArr = new String[checkedItems.size()];
-                for (int i = 0, j = 0; i < checkedItems.size(); i++) {
-                    int pos = checkedItems.keyAt(i);
-                    if (checkedItems.valueAt(i)) {
-                        Cursor cursor = (Cursor) mAdapter.getItem(pos);
-                        int index = cursor.getColumnIndex(MediaStore.Audio.Media.DATA);
-                        outputStrArr[j++] = cursor.getString(index);
-                        //Log.d("TAG", outputStrArr[j]);
-                    }
-                }*/
                 String[] outputStrArr = mCheckedItems.values().toArray(new String[0]);
                 Intent intent = new Intent(getApplicationContext(), ServerActivity.class);
                 Bundle bundle = new Bundle();

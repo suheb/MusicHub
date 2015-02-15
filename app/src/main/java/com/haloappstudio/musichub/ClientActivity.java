@@ -22,8 +22,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Timer;
-import java.util.TimerTask;
 
 
 public class ClientActivity extends ActionBarActivity{
@@ -36,15 +34,8 @@ public class ClientActivity extends ActionBarActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client);
-        File dir =  new File(Environment.getExternalStorageDirectory(),"/MusicHub");
-        if(!dir.exists()) {
-            dir.mkdirs();
-        }
-        final File file = new File(dir, "temp.mp3");
-        if(file.exists()) {
-            file.delete();
-        }
 
+        // Set up MediaPlayer
         mMediaPlayer = new MediaPlayer();
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mMediaPlayer.setScreenOnWhilePlaying(true);
@@ -56,6 +47,7 @@ public class ClientActivity extends ActionBarActivity{
                 Toast.makeText(getApplicationContext(), "Prepared", Toast.LENGTH_LONG).show();
             }
         });
+        // Set up WebSocketConnectCallback
         mWebSocketConnectCallback = new AsyncHttpClient.WebSocketConnectCallback() {
             @Override
             public void onCompleted(Exception ex, final WebSocket webSocket) {
@@ -69,7 +61,8 @@ public class ClientActivity extends ActionBarActivity{
                     public void onStringAvailable(final String s) {
                         Log.d("TAG", s);
                         if(s.contains("file")){
-                            String[] strings = s.split("-");
+                            mMediaPlayer.reset();
+                            String[] strings = s.split("</>");
                             File dir =  new File(Environment.getExternalStorageDirectory(),"/MusicHub");
                             if(!dir.exists()) {
                                 dir.mkdirs();
@@ -80,7 +73,6 @@ public class ClientActivity extends ActionBarActivity{
                             }
                         }
                         else if(s.contains("prepare")){
-                            mMediaPlayer.reset();
                             try {
                                 mMediaPlayer.setDataSource(ClientActivity.this, Uri.fromFile(mCurrentSong));
                                 mMediaPlayer.prepareAsync();
@@ -88,12 +80,8 @@ public class ClientActivity extends ActionBarActivity{
                                 e.printStackTrace();
                             }
                         }
-                        else if(s.contains("start")){
-                            String[] strings = s.split("-");
-                            mMediaPlayer.seekTo(Integer.parseInt(strings[1])+200);
-                        }
                         else if(s.contains("seek")){
-                            String[] strings = s.split("-");
+                            String[] strings = s.split("</>");
                             Log.d("TAG", "lag:" + (Integer.parseInt(strings[1]) - mMediaPlayer.getCurrentPosition())
                                     + "latency:" + System.currentTimeMillis());
                             mMediaPlayer.seekTo(Integer.parseInt(strings[1])+200);
@@ -121,6 +109,7 @@ public class ClientActivity extends ActionBarActivity{
                 });
             }
         };
+        // Connect to server
         mAsyncHttpClient = AsyncHttpClient.getDefaultInstance();
         mAsyncHttpClient.websocket("ws://192.168.43.1:8585", null, mWebSocketConnectCallback);
 
@@ -155,14 +144,4 @@ public class ClientActivity extends ActionBarActivity{
         mMediaPlayer.release();
     }
 
-    private void setTimer() {
-        new Timer("keep_alive").scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                if (mWebSocket != null) {
-                    mWebSocket.send("random");
-                }
-            }
-        }, 2000, 3000);
-    }
 }

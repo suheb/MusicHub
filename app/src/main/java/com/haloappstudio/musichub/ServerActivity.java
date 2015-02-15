@@ -55,7 +55,7 @@ public class ServerActivity extends ActionBarActivity {
         mMediaPlayer = new MediaPlayer();
         mCurrentSongIndex = 0;
         mCurrentSong = new File(mPlaylist[mCurrentSongIndex]);
-        // set file for playback
+        // Set up MediaPlayer
         try {
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setDataSource(this, Uri.fromFile(mCurrentSong));
@@ -66,7 +66,7 @@ public class ServerActivity extends ActionBarActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        // set MediaPlayer listeners
+        // Set MediaPlayer listeners
         mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mediaPlayer) {
@@ -79,17 +79,17 @@ public class ServerActivity extends ActionBarActivity {
                 playNext();
             }
         });
-        // set callback for HttpServer
+        // Set WebsocketCallback
         mWebSocketCallback = new AsyncHttpServer.WebSocketRequestCallback() {
             @Override
             public void onConnected(final WebSocket webSocket, RequestHeaders headers) {
-                // add to connected socket list
+                // Add to connected socket list
                 mSockets.add(webSocket);
 
                 int fileSize = (int) mCurrentSong.length();
                 int lastOffset = fileSize - (fileSize % CHUNK_SIZE);
                 byte[] bytes = new byte[fileSize];
-                // read file into bytes for sending
+                // Read file into bytes for sending
                 try {
                     BufferedInputStream buf = new BufferedInputStream(new FileInputStream(mCurrentSong));
                     buf.read(bytes);
@@ -97,8 +97,8 @@ public class ServerActivity extends ActionBarActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                //send file in chunks
-                webSocket.send("file-" + mCurrentSong.getName());
+                // Send file in chunks
+                webSocket.send("file</>" + mCurrentSong.getName());
                 //Toast.makeText(getApplicationContext(), mCurrentSong.getName(), Toast.LENGTH_SHORT).show();
                 for (int offset = 0; offset < lastOffset; offset += CHUNK_SIZE) {
                     webSocket.send(bytes, offset, offset + CHUNK_SIZE);
@@ -106,7 +106,7 @@ public class ServerActivity extends ActionBarActivity {
                 webSocket.send(bytes, lastOffset, fileSize);
                 webSocket.send("File sent");
                 webSocket.send("prepare");
-                //Use this to clean up any references to your websocket
+                // Use this to clean up any references to your websocket
                 webSocket.setClosedCallback(new CompletedCallback() {
                     @Override
                     public void onCompleted(Exception ex) {
@@ -127,14 +127,17 @@ public class ServerActivity extends ActionBarActivity {
                                 Toast.makeText(getApplicationContext(), s, Toast.LENGTH_SHORT).show();
                             }
                         });
-                        if (s.contains("prepared"))
-                            webSocket.send("start-" + mMediaPlayer.getCurrentPosition());
+                        if (s.contains("prepared")) {
+                            for (WebSocket socket : mSockets) {
+                                socket.send("seek</>" + mMediaPlayer.getCurrentPosition());
+                            }
+                        }
                     }
                 });
             }
         };
+        // Set WebsocketCallback and listen on port
         mAsyncHttpServer.websocket("/", mWebSocketCallback);
-        // listen for request from client
         mAsyncHttpServer.listen(Utils.PORT_NUMBER);
 
         Button syncButton = (Button) findViewById(R.id.sync_button);
@@ -142,7 +145,7 @@ public class ServerActivity extends ActionBarActivity {
             @Override
             public void onClick(View view) {
                 for (WebSocket socket : mSockets) {
-                    socket.send("seek-" + mMediaPlayer.getCurrentPosition() + "-" + System.currentTimeMillis());
+                    socket.send("seek</>" + mMediaPlayer.getCurrentPosition());
                 }
             }
         });
@@ -200,11 +203,11 @@ public class ServerActivity extends ActionBarActivity {
         byte[] bytes = new byte[fileSize];
         mMediaPlayer.reset();
         try {
-            // set file for playback
+            // Set up MediaPlayer
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setDataSource(ServerActivity.this, Uri.fromFile(mCurrentSong));
             mMediaPlayer.prepareAsync();
-            // read file into bytes for sending
+            // Read file into bytes for sending
             BufferedInputStream buf = new BufferedInputStream(new FileInputStream(mCurrentSong));
             buf.read(bytes);
             buf.close();
@@ -216,8 +219,8 @@ public class ServerActivity extends ActionBarActivity {
         }
 
         for (WebSocket webSocket : mSockets) {
-            //send file in chunks
-            webSocket.send("file-" + mCurrentSong.getName());
+            // Send file in chunks
+            webSocket.send("file</>" + mCurrentSong.getName());
             for (int offset = 0; offset < lastOffset; offset += CHUNK_SIZE) {
                 webSocket.send(bytes, offset, offset + CHUNK_SIZE);
             }
