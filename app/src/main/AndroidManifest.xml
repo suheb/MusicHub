@@ -52,7 +52,7 @@
         </activity>
 
         <service
-            android:name=".ServiceService"
+            android:name=".ServerService"
             android:enabled="true"
             android:exported="true" >
         </service>

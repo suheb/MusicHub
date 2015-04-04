@@ -8,5 +8,9 @@
     <string name="title_activity_client">ClientActivity</string>
     <string name="title_activity_songs_list">Tracks</string>
     <string name="search_hint">Search Tracks</string>
+    <string name="prev">Previous</string>
+    <string name="sync">Sync</string>
+    <string name="next">Next</string>
+    <string name="stop">Stop</string>
 
 </resources>

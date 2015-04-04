@@ -1,7 +1,9 @@
 package com.haloappstudio.musichub;
 
+import android.app.AlertDialog;
 import android.app.SearchManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
@@ -24,6 +26,8 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.haloappstudio.musichub.utils.CustomCursorAdapter;
+import com.haloappstudio.musichub.utils.Utils;
+import com.haloappstudio.musichub.utils.WifiApManager;
 
 import java.util.HashMap;
 
@@ -76,11 +80,13 @@ public class SongsListActivity extends ActionBarActivity
             @Override
             public void onClick(View view) {
                 String[] outputStrArr = mCheckedItems.values().toArray(new String[0]);
-                Intent intent = new Intent(getApplicationContext(), ServerActivity.class);
+                Intent serviceIntent = new Intent(getApplicationContext(), ServerService.class);
                 Bundle bundle = new Bundle();
                 bundle.putStringArray("playlist", outputStrArr);
-                intent.putExtras(bundle);
-                startActivity(intent);
+                serviceIntent.putExtras(bundle);
+                startService(serviceIntent);
+                Intent activityIntent = new Intent(getApplicationContext(), ServerActivity.class);
+                startActivity(activityIntent);
             }
         });
 
@@ -198,5 +204,24 @@ public class SongsListActivity extends ActionBarActivity
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        new AlertDialog.Builder(this)
+                .setCancelable(false)
+                .setTitle("Music Hub")
+                .setMessage("Do you want to close the hub and exit?")
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        intent.putExtra(Utils.ACTION_EXIT, true);
+                        startActivity(intent);
+                    }
+                })
+                .setNegativeButton("No", null)
+                .show();
     }
 }

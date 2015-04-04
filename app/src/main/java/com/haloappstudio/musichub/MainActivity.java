@@ -15,6 +15,7 @@ import android.view.View;
 import android.widget.Button;
 
 import com.haloappstudio.musichub.dialogs.JoinHubDialog;
+import com.haloappstudio.musichub.utils.Utils;
 import com.haloappstudio.musichub.utils.WifiApManager;
 
 
@@ -27,12 +28,15 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        if (getIntent().getBooleanExtra(Utils.ACTION_EXIT, false)) {
+            finish();
+        }
         mWifiApManager = new WifiApManager(this);
         mWifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         mWifiConf = new WifiConfiguration();
 
         mProgressDialog = new ProgressDialog(this);
+        mProgressDialog.setCancelable(false);
 
         Button createHubButton = (Button) findViewById(R.id.create_hub_button);
         createHubButton.setOnClickListener(new View.OnClickListener() {
@@ -102,6 +106,7 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
+
     }
 
 
@@ -122,5 +127,12 @@ public class MainActivity extends ActionBarActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mWifiApManager.setWifiApEnabled(mWifiConf, false);
+        mWifiManager.setWifiEnabled(false);
     }
 }
