@@ -12,11 +12,10 @@ public class Utils {
     public static final String KEY_PREPARE = "prepare";
     public static final String KEY_SEEK = "seek";
     public static final String KEY_FILE = "file";
-    public static final int ACTION_SYNC = 1;
-    public static final int ACTION_PREV = 2;
-    public static final int ACTION_NEXT = 3;
-    public static final int ACTION_STOP = 0;
-    public static final String ACTION_UPDATE = "com.haloappstudio.musichub.update";
+    public static final String ACTION_SYNC = "com.haloappstudio.musichub.sync";
+    public static final String ACTION_STOP = "com.haloappstudio.musichub.stop";
+    public static final String ACTION_PREV = "com.haloappstudio.musichub.prev";
+    public static final String ACTION_NEXT = "com.haloappstudio.musichub.next";
     public static final String ACTION_EXIT = "com.haloappstudio.musichub.exit";
 
     public static Boolean isWifiConnected(Context context) {

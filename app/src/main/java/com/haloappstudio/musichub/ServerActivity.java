@@ -3,31 +3,14 @@ package com.haloappstudio.musichub;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.media.AudioManager;
-import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
 
 import com.haloappstudio.musichub.utils.Utils;
-import com.koushikdutta.async.callback.CompletedCallback;
-import com.koushikdutta.async.http.WebSocket;
-import com.koushikdutta.async.http.libcore.RequestHeaders;
-import com.koushikdutta.async.http.server.AsyncHttpServer;
-
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class ServerActivity extends ActionBarActivity {
@@ -41,8 +24,7 @@ public class ServerActivity extends ActionBarActivity {
         syncButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent syncIntent = new Intent(Utils.ACTION_UPDATE);
-                syncIntent.putExtra(Utils.ACTION_UPDATE, Utils.ACTION_SYNC);
+                Intent syncIntent = new Intent(Utils.ACTION_SYNC);
                 sendBroadcast(syncIntent);
             }
         });
@@ -50,8 +32,7 @@ public class ServerActivity extends ActionBarActivity {
         prevButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent prevIntent = new Intent(Utils.ACTION_UPDATE);
-                prevIntent.putExtra(Utils.ACTION_UPDATE, Utils.ACTION_PREV);
+                Intent prevIntent = new Intent(Utils.ACTION_PREV);
                 sendBroadcast(prevIntent);
             }
         });
@@ -59,8 +40,7 @@ public class ServerActivity extends ActionBarActivity {
         nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent nextIntent = new Intent(Utils.ACTION_UPDATE);
-                nextIntent.putExtra(Utils.ACTION_UPDATE, Utils.ACTION_NEXT);
+                Intent nextIntent = new Intent(Utils.ACTION_NEXT);
                 sendBroadcast(nextIntent);
             }
         });
@@ -109,13 +89,13 @@ public class ServerActivity extends ActionBarActivity {
     }
 
     private void cleanUp(){
-        Intent stopIntent = new Intent(Utils.ACTION_UPDATE);
-        stopIntent.putExtra(Utils.ACTION_UPDATE, Utils.ACTION_STOP);
+        Intent stopIntent = new Intent(Utils.ACTION_STOP);
         sendBroadcast(stopIntent);
         Intent intent = new Intent(getApplicationContext(), MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         intent.putExtra(Utils.ACTION_EXIT, true);
         startActivity(intent);
+        finish();
     }
 
 }

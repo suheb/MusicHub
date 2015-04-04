@@ -29,6 +29,8 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         if (getIntent().getBooleanExtra(Utils.ACTION_EXIT, false)) {
+            mWifiApManager.setWifiApEnabled(mWifiConf, false);
+            mWifiManager.setWifiEnabled(false);
             finish();
         }
         mWifiApManager = new WifiApManager(this);
@@ -132,7 +134,5 @@ public class MainActivity extends ActionBarActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mWifiApManager.setWifiApEnabled(mWifiConf, false);
-        mWifiManager.setWifiEnabled(false);
     }
 }

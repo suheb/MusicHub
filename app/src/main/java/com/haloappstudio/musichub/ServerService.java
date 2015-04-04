@@ -8,11 +8,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
+import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.IBinder;
 import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
 
 import com.haloappstudio.musichub.utils.Utils;
@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ServerService extends Service {
+    final static int CHUNK_SIZE = 10000;
     private final int mId = 1;
     private NotificationCompat.Builder mBuilder;
     private List<WebSocket> mSockets;
@@ -41,71 +42,53 @@ public class ServerService extends Service {
     private File mCurrentSong;
     private BroadcastReceiver mUpdateSongReceiver;
     private NotificationManager mNotificationManager;
-
-    final static int CHUNK_SIZE = 10000;
+    private MediaMetadataRetriever mMediaMetadataRetriever;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        Intent prevIntent = new Intent(Utils.ACTION_UPDATE);
-        prevIntent.putExtra(Utils.ACTION_UPDATE, Utils.ACTION_PREV);
+        Intent prevIntent = new Intent(Utils.ACTION_PREV);
         PendingIntent prevPendingIntent = PendingIntent.getBroadcast(this, 0,
                 prevIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-        Intent syncIntent = new Intent(Utils.ACTION_UPDATE);
-        syncIntent.putExtra(Utils.ACTION_UPDATE, Utils.ACTION_SYNC);
+        Intent syncIntent = new Intent(Utils.ACTION_SYNC);
         PendingIntent syncPendingIntent = PendingIntent.getBroadcast(this, 0,
                 syncIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-        Intent nextIntent = new Intent(Utils.ACTION_UPDATE);
-        nextIntent.putExtra(Utils.ACTION_UPDATE, Utils.ACTION_NEXT);
+        Intent nextIntent = new Intent(Utils.ACTION_NEXT);
         PendingIntent nextPendingIntent = PendingIntent.getBroadcast(this, 0,
                 nextIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-        Intent stopIntent = new Intent(Utils.ACTION_UPDATE);
-        stopIntent.putExtra(Utils.ACTION_UPDATE, Utils.ACTION_STOP);
-        PendingIntent stopPendingIntent = PendingIntent.getBroadcast(this, 0,
-                stopIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-
 
         mBuilder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.drawable.ic_launcher)
-                .setContentTitle("Music Hub").setContentText("Playing")
+                .setContentTitle(getString(R.string.app_name))
                 .setStyle(new NotificationCompat.BigTextStyle())
-                .addAction(android.R.drawable.ic_media_previous, null, prevPendingIntent)
-                .addAction(R.drawable.ic_action_cancel, null, stopPendingIntent)
-                .addAction(android.R.drawable.ic_popup_sync, null, syncPendingIntent)
-                .addAction(android.R.drawable.ic_media_next, null, nextPendingIntent);
+                .addAction(android.R.drawable.ic_media_previous, getString(R.string.prev), prevPendingIntent)
+                .addAction(android.R.drawable.ic_popup_sync, getString(R.string.sync), syncPendingIntent)
+                .addAction(android.R.drawable.ic_media_next, getString(R.string.next), nextPendingIntent);
         // Creates an explicit intent for an Activity in your app
         Intent resultIntent = new Intent(this, ServerActivity.class);
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        // Adds the back stack for the Intent (but not the Intent itself)
-        stackBuilder.addParentStack(ServerActivity.class);
-        // Adds the Intent that starts the Activity to the top of the stack
-        stackBuilder.addNextIntent(resultIntent);
-        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0,
-                PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(this, 0, resultIntent, 0);
         mBuilder.setContentIntent(resultPendingIntent);
 
         mUpdateSongReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                int action = intent.getIntExtra(Utils.ACTION_UPDATE, Utils.ACTION_SYNC);
-                switch (action){
-                    case Utils.ACTION_SYNC:
-                        sync();
-                        break;
-                    case Utils.ACTION_PREV:
-                        playPrev();
-                        break;
-                    case Utils.ACTION_NEXT:
-                        playNext();
-                        break;
-                    case Utils.ACTION_STOP:
-                        stopSelf();
-                        break;
+                String action = intent.getAction();
+                if (action.equals(Utils.ACTION_SYNC)) {
+                    sync();
+                } else if (action.equals(Utils.ACTION_STOP)) {
+                    stopSelf();
+                } else if (action.equals(Utils.ACTION_PREV)) {
+                    playPrev();
+                } else if (action.equals(Utils.ACTION_NEXT)) {
+                    playNext();
                 }
             }
         };
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(Utils.ACTION_UPDATE);
+        intentFilter.addAction(Utils.ACTION_SYNC);
+        intentFilter.addAction(Utils.ACTION_STOP);
+        intentFilter.addAction(Utils.ACTION_PREV);
+        intentFilter.addAction(Utils.ACTION_NEXT);
         registerReceiver(mUpdateSongReceiver, intentFilter);
     }
 
@@ -119,10 +102,12 @@ public class ServerService extends Service {
         mMediaPlayer = new MediaPlayer();
         mCurrentSongIndex = 0;
         mCurrentSong = new File(mPlaylist[mCurrentSongIndex]);
+        mMediaMetadataRetriever = new MediaMetadataRetriever();
         // Set up MediaPlayer
         try {
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setDataSource(this, Uri.fromFile(mCurrentSong));
+            mMediaMetadataRetriever.setDataSource(this, Uri.fromFile(mCurrentSong));
             mMediaPlayer.prepareAsync();
 
         } catch (FileNotFoundException e) {
@@ -134,7 +119,10 @@ public class ServerService extends Service {
         mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mediaPlayer) {
-                mBuilder.setContentText("Playing: "+mCurrentSong.getName());
+                String bigContent = mMediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST) + "\n"
+                        + mMediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM);
+                mBuilder.setContentTitle(mMediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE));
+                mBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText(bigContent));
                 mNotificationManager.notify(mId, mBuilder.build());
                 mediaPlayer.start();
             }
@@ -212,7 +200,6 @@ public class ServerService extends Service {
         mAsyncHttpServer.stop();
         mMediaPlayer.stop();
         mNotificationManager.cancel(mId);
-
     }
 
     public void playSong(){
@@ -225,6 +212,7 @@ public class ServerService extends Service {
             // Set up MediaPlayer
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setDataSource(ServerService.this, Uri.fromFile(mCurrentSong));
+            mMediaMetadataRetriever.setDataSource(this, Uri.fromFile(mCurrentSong));
             mMediaPlayer.prepareAsync();
             // Read file into bytes for sending
             BufferedInputStream buf = new BufferedInputStream(new FileInputStream(mCurrentSong));
