@@ -31,7 +31,7 @@ import java.util.List;
 
 public class ServerService extends Service {
     final static int CHUNK_SIZE = 10000;
-    private final int mId = 1;
+    private final int mNotificationId = 1;
     private NotificationCompat.Builder mBuilder;
     private List<WebSocket> mSockets;
     private AsyncHttpServer mAsyncHttpServer;
@@ -40,7 +40,7 @@ public class ServerService extends Service {
     private String[] mPlaylist;
     private int mCurrentSongIndex;
     private File mCurrentSong;
-    private BroadcastReceiver mUpdateSongReceiver;
+    private BroadcastReceiver mServerReceiver;
     private NotificationManager mNotificationManager;
     private MediaMetadataRetriever mMediaMetadataRetriever;
 
@@ -69,7 +69,7 @@ public class ServerService extends Service {
         PendingIntent resultPendingIntent = PendingIntent.getActivity(this, 0, resultIntent, 0);
         mBuilder.setContentIntent(resultPendingIntent);
 
-        mUpdateSongReceiver = new BroadcastReceiver() {
+        mServerReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 String action = intent.getAction();
@@ -89,12 +89,12 @@ public class ServerService extends Service {
         intentFilter.addAction(Utils.ACTION_STOP);
         intentFilter.addAction(Utils.ACTION_PREV);
         intentFilter.addAction(Utils.ACTION_NEXT);
-        registerReceiver(mUpdateSongReceiver, intentFilter);
+        registerReceiver(mServerReceiver, intentFilter);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        startForeground(mId, mBuilder.build());
+        startForeground(mNotificationId, mBuilder.build());
         mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mPlaylist = intent.getExtras().getStringArray("playlist");
         mSockets = new ArrayList<>();
@@ -107,8 +107,8 @@ public class ServerService extends Service {
         try {
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setDataSource(this, Uri.fromFile(mCurrentSong));
-            mMediaMetadataRetriever.setDataSource(this, Uri.fromFile(mCurrentSong));
             mMediaPlayer.prepareAsync();
+            mMediaMetadataRetriever.setDataSource(this, Uri.fromFile(mCurrentSong));
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -119,12 +119,12 @@ public class ServerService extends Service {
         mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mediaPlayer) {
+                mediaPlayer.start();
                 String bigContent = mMediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST) + "\n"
                         + mMediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM);
                 mBuilder.setContentTitle(mMediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE));
                 mBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText(bigContent));
-                mNotificationManager.notify(mId, mBuilder.build());
-                mediaPlayer.start();
+                mNotificationManager.notify(mNotificationId, mBuilder.build());
             }
         });
         mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
@@ -196,12 +196,13 @@ public class ServerService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(mUpdateSongReceiver);
+        unregisterReceiver(mServerReceiver);
         mAsyncHttpServer.stop();
-        mMediaPlayer.stop();
-        mNotificationManager.cancel(mId);
+        mMediaPlayer.release();
+        mNotificationManager.cancel(mNotificationId);
     }
 
+    // Utility methods
     public void playSong(){
         mCurrentSong = new File(mPlaylist[mCurrentSongIndex]);
         int fileSize = (int) mCurrentSong.length();
@@ -212,8 +213,8 @@ public class ServerService extends Service {
             // Set up MediaPlayer
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setDataSource(ServerService.this, Uri.fromFile(mCurrentSong));
-            mMediaMetadataRetriever.setDataSource(this, Uri.fromFile(mCurrentSong));
             mMediaPlayer.prepareAsync();
+            mMediaMetadataRetriever.setDataSource(this, Uri.fromFile(mCurrentSong));
             // Read file into bytes for sending
             BufferedInputStream buf = new BufferedInputStream(new FileInputStream(mCurrentSong));
             buf.read(bytes);

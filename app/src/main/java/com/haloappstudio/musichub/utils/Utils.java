@@ -8,6 +8,7 @@ import android.net.NetworkInfo;
  * Created by suheb on 20/10/14.
  */
 public class Utils {
+    public static final String IP_ADDRESS = "ws://192.168.43.1:8585";
     public static final int PORT_NUMBER = 8585;
     public static final String KEY_PREPARE = "prepare";
     public static final String KEY_SEEK = "seek";

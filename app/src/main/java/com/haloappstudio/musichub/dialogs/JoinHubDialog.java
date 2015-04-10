@@ -19,6 +19,7 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
 import com.haloappstudio.musichub.ClientActivity;
+import com.haloappstudio.musichub.ClientService;
 import com.haloappstudio.musichub.R;
 import com.haloappstudio.musichub.utils.Utils;
 
@@ -73,6 +74,7 @@ public class JoinHubDialog extends DialogFragment {
                                 @Override
                                 public void run() {
                                     mProgressDialog.dismiss();
+                                    mActivity.startService(new Intent(mActivity.getApplicationContext(), ClientService.class));
                                     mActivity.startActivity(new Intent(mActivity, ClientActivity.class));
                                 }
                             });

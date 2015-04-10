@@ -1,27 +1,19 @@
 package com.haloappstudio.musichub;
 
-import android.media.AudioManager;
+import android.content.Intent;
 import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
+import android.view.View;
+import android.widget.Button;
 
-import com.koushikdutta.async.ByteBufferList;
-import com.koushikdutta.async.DataEmitter;
-import com.koushikdutta.async.callback.DataCallback;
+import com.haloappstudio.musichub.utils.Utils;
 import com.koushikdutta.async.http.AsyncHttpClient;
 import com.koushikdutta.async.http.WebSocket;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 
 
 public class ClientActivity extends ActionBarActivity{
@@ -35,84 +27,19 @@ public class ClientActivity extends ActionBarActivity{
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client);
 
-        // Set up MediaPlayer
-        mMediaPlayer = new MediaPlayer();
-        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        mMediaPlayer.setScreenOnWhilePlaying(true);
-        mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+        Button stopButton = (Button) findViewById(R.id.stop_client_button);
+        stopButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onPrepared(MediaPlayer mediaPlayer) {
-                mWebSocket.send("prepared");
-                mMediaPlayer.start();
-                Toast.makeText(getApplicationContext(), "Prepared", Toast.LENGTH_LONG).show();
+            public void onClick(View view) {
+                Intent stopIntent = new Intent(Utils.ACTION_STOP);
+                sendBroadcast(stopIntent);
+                Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                intent.putExtra(Utils.ACTION_EXIT, true);
+                startActivity(intent);
+                finish();
             }
         });
-        // Set up WebSocketConnectCallback
-        mWebSocketConnectCallback = new AsyncHttpClient.WebSocketConnectCallback() {
-            @Override
-            public void onCompleted(Exception ex, final WebSocket webSocket) {
-                if (ex != null) {
-                    ex.printStackTrace();
-                    return;
-                }
-                mWebSocket = webSocket;
-                webSocket.setStringCallback(new WebSocket.StringCallback() {
-                    @Override
-                    public void onStringAvailable(final String s) {
-                        Log.d("TAG", s);
-                        if(s.contains("file")){
-                            mMediaPlayer.reset();
-                            String[] strings = s.split("</>");
-                            File dir =  new File(Environment.getExternalStorageDirectory(),"/MusicHub");
-                            if(!dir.exists()) {
-                                dir.mkdirs();
-                            }
-                            mCurrentSong = new File(dir, strings[1]);
-                            if(mCurrentSong.exists()) {
-                                mCurrentSong.delete();
-                            }
-                        }
-                        else if(s.contains("prepare")){
-                            try {
-                                mMediaPlayer.setDataSource(ClientActivity.this, Uri.fromFile(mCurrentSong));
-                                mMediaPlayer.prepareAsync();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        else if(s.contains("seek")){
-                            String[] strings = s.split("</>");
-                            Log.d("TAG", "lag:" + (Integer.parseInt(strings[1]) - mMediaPlayer.getCurrentPosition())
-                                    + "latency:" + System.currentTimeMillis());
-                            mMediaPlayer.seekTo(Integer.parseInt(strings[1])+200);
-                        }
-                    }
-                });
-                webSocket.setDataCallback(new DataCallback() {
-                    @Override
-                    public void onDataAvailable(DataEmitter emitter, final ByteBufferList bb) {
-                        byte[] bytes = bb.getAllByteArray();
-                        Log.d("TAG", "Got "+ bytes.length +" bytes");
-                        webSocket.ping("pong");
-                        try {
-                            FileOutputStream fileOutputStream = new FileOutputStream(mCurrentSong, true);
-                            BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
-                            bufferedOutputStream.write(bytes);
-
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        bb.recycle();
-                    }
-                });
-            }
-        };
-        // Connect to server
-        mAsyncHttpClient = AsyncHttpClient.getDefaultInstance();
-        mAsyncHttpClient.websocket("ws://192.168.43.1:8585", null, mWebSocketConnectCallback);
-
     }
 
 
@@ -133,15 +60,6 @@ public class ClientActivity extends ActionBarActivity{
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if(mWebSocket!=null) {
-            mWebSocket.close();
-        }
-        mMediaPlayer.release();
     }
 
 }

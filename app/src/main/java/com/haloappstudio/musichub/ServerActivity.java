@@ -44,7 +44,7 @@ public class ServerActivity extends ActionBarActivity {
                 sendBroadcast(nextIntent);
             }
         });
-        Button stopButton = (Button) findViewById(R.id.stop_button);
+        Button stopButton = (Button) findViewById(R.id.stop_server_button);
         stopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -88,6 +88,7 @@ public class ServerActivity extends ActionBarActivity {
                 .show();
     }
 
+    // Utility methods
     private void cleanUp(){
         Intent stopIntent = new Intent(Utils.ACTION_STOP);
         sendBroadcast(stopIntent);

@@ -12,5 +12,7 @@
     <string name="sync">Sync</string>
     <string name="next">Next</string>
     <string name="stop">Stop</string>
+    <string name="create">Create Hub</string>
+    <string name="join">Join Hub</string>
 
 </resources>
