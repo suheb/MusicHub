@@ -26,8 +26,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ServerService extends Service {
     final static int CHUNK_SIZE = 10000;
@@ -97,7 +97,7 @@ public class ServerService extends Service {
         startForeground(mNotificationId, mBuilder.build());
         mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mPlaylist = intent.getExtras().getStringArray("playlist");
-        mSockets = new ArrayList<>();
+        mSockets = new CopyOnWriteArrayList<>();
         mAsyncHttpServer = new AsyncHttpServer();
         mMediaPlayer = new MediaPlayer();
         mCurrentSongIndex = 0;
